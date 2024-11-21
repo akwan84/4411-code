@@ -18,25 +18,57 @@ class WBTreeNode {
         std::vector<WBTreeNode*> children;
         WBTreeNode* next;
         
-        std::vector<bool> bitmap;
-        std::vector<int*> slotArr;
+        int bitmap;
+        std::vector<int> slotArr;
 
         WBTreeNode (bool leaf){
             isLeaf = leaf;
             next = nullptr;
             count = 0;
-
-            for(int i = 0; i < MAX; i++) {
-                bitmap.push_back(false);
-            }
+            bitmap = 0;
         }
 
         void insert(int key); //insert a key into a non-full node
 };
 
-int main() {
-    WBTreeNode node = new WBTreeNode(false);
-    for(int i = 0; i < MAX; i++) {
-        std::cout << node.bitmap[i] << " ";
+void WBTreeNode::insert(int key) {
+    if(isLeaf) {
+        keys.push_back(key);
+        int index = keys.size() - 1;
+
+        // Binary search to find the correct insertion point in slotArr
+        int l = 0;
+        int r = slotArr.size();
+        while (l < r) {
+            int mid = (l + r) / 2;
+            if (keys[slotArr[mid]] < key) { // Compare values pointed by slotArr[mid]
+                l = mid + 1;
+            } else {
+                r = mid; // Potential insertion point
+            }
+        }
+
+        // Insert the pointer into the slotArr at the found position
+        slotArr.insert(slotArr.begin() + l, index);
     }
+}
+
+int main() {
+    WBTreeNode node = new WBTreeNode(true);
+
+    node.insert(5);
+    node.insert(2);
+    node.insert(3);
+
+    node.insert(13);
+    node.insert(4);
+
+    // Display the keys in slotArr (sorted order)
+    std::cout << "Sorted keys: ";
+    for (int ptr : node.slotArr) {
+        std::cout << node.keys[ptr] << " ";
+    }
+    std::cout << std::endl;
+
+    return 0;
 }
