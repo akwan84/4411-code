@@ -4,71 +4,114 @@
 #include <thread>
 #include <chrono>
 
+using namespace std;
+
 const int MAX = 4; // maximum keys per node 
 const int READ_TIME = 10;
 const int WRITE_TIME = 50;
 int numReads = 0;
 int numWrites = 0;
 
-class WBTreeNode {
+class LeafNode;
+class InternalNode;
+
+class InternalNode {
     public:
-        bool isLeaf;
-        int count;
-        std::vector<int> keys;
-        std::vector<WBTreeNode*> children;
-        WBTreeNode* next;
-        
-        int bitmap;
-        std::vector<int> slotArr;
+        vector<int> keys;
+        vector<int> keySlotArr;
 
-        WBTreeNode (bool leaf){
-            isLeaf = leaf;
-            next = nullptr;
-            count = 0;
-            bitmap = 0;
-        }
+        vector<InternalNode> internalChildren;
+        vector<LeafNode*> leafChildren;
 
-        void insert(int key); //insert a key into a non-full node
+        vector<int> childrenSlotArr;
 };
 
-void WBTreeNode::insert(int key) {
-    if(isLeaf) {
-        keys.push_back(key);
-        int index = keys.size() - 1;
+class LeafNode {
+    public:
+        vector<int> keys;
+        vector<int> slotArr;
 
-        // Binary search to find the correct insertion point in slotArr
-        int l = 0;
-        int r = slotArr.size();
-        while (l < r) {
-            int mid = (l + r) / 2;
-            if (keys[slotArr[mid]] < key) { // Compare values pointed by slotArr[mid]
-                l = mid + 1;
-            } else {
-                r = mid; // Potential insertion point
-            }
+        void insert(int key);
+        void split(InternalNode* parent, int index);
+};
+
+void LeafNode::insert(int key) {
+    keys.push_back(key);
+    int index = keys.size() - 1;
+
+    // Binary search to find the correct insertion point in slotArr
+    int l = 0, r = slotArr.size();
+    while (l < r) {
+        int mid = (l + r) / 2;
+        if (keys[slotArr[mid]] < key) {
+            l = mid + 1;
+        } else {
+            r = mid; // Potential insertion point
         }
-
-        // Insert the pointer into the slotArr at the found position
-        slotArr.insert(slotArr.begin() + l, index);
     }
+
+    // Insert the pointer into the slotArr at the found position
+    slotArr.insert(slotArr.begin() + l, index);
+}
+
+void LeafNode::split(InternalNode* parent, int index) {
+    LeafNode* newNode;
+
+    int promote = keys[slotArr[(MAX/2) - 1]]; //key to be promoted
+
+    for(int i = MAX/2; i < MAX; i++) {
+        newNode->keys.push_back(keys[slotArr[i]]);
+        newNode->slotArr.push_back(newNode->keys.size() - 1);
+    }
+
+    vector<int> newKeys;
+    vector<int> newSlotArr;
+
+    for(int i = 0; i < MAX/2; i++) {
+        newKeys.push_back(keys[slotArr[i]]);
+        newSlotArr.push_back(newKeys.size() - 1);
+    }
+
+    keys = newKeys;
+    slotArr = newSlotArr;
+
+    /* insert key into parent node */
+    parent->keys.push_back(promote);
+    int slotArrIndex = parent->keys.size() - 1;
+
+    cout << "here\n";
+
+    // Binary search to find the correct insertion point in keySlotArr
+    int l = 0, r = parent->keySlotArr.size();
+    while (l < r) {
+        int mid = (l + r) / 2;
+        if (parent->keys[parent->keySlotArr[mid]] < promote) {
+            l = mid + 1;
+        } else {
+            r = mid; // Potential insertion point
+        }
+    }
+
+    // Insert the pointer into the slotArr at the found position
+    parent->keySlotArr.insert(parent->keySlotArr.begin() + l, slotArrIndex);
+
+    cout << "here\n";
+    //insert new pointer into parent node
+
 }
 
 int main() {
-    WBTreeNode node = new WBTreeNode(true);
+    LeafNode node;
+    InternalNode* parent = new InternalNode();
 
     node.insert(5);
+    node.insert(10);
     node.insert(2);
-    node.insert(3);
+    node.insert(7);
 
-    node.insert(13);
-    node.insert(4);
+    //node->split(parent, 0);
 
-    // Display the keys in slotArr (sorted order)
-    std::cout << "Sorted keys: ";
-    for (int ptr : node.slotArr) {
-        std::cout << node.keys[ptr] << " ";
-    }
-    std::cout << std::endl;
+    //cout << parent->leafChildren.size() << "\n";
 
     return 0;
 }
