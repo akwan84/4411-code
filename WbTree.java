@@ -15,6 +15,44 @@ public class WbTree {
         lastState = "";
     }
 
+    public boolean search(int key) {
+        if(numLevels == 1) {
+            return searchLeaf(key, oldRoot);
+        }else{
+            InternalNode cur = root;
+            LeafNode target = new LeafNode();
+            for(int i = 0; i < numLevels - 1; i++) {
+                int index = cur.keys.size() - 1;
+                while(index >= 0 && key < cur.keys.get(cur.keySlotArr.get(index))) {
+                    index--;
+                }
+                if(cur.leafChildren.size() != 0) {
+                    target = cur.leafChildren.get(cur.childrenSlotArr.get(index + 1));
+                }else{
+                    cur = cur.internalChildren.get(cur.childrenSlotArr.get(index + 1));
+                }
+            }
+            return searchLeaf(key, target);
+        }
+    }
+
+    private boolean searchLeaf(int key, LeafNode node) {
+        int l = 0;
+        int r = node.keys.size() - 1;
+
+        while(l <= r) {
+            int mid = (l + r) / 2;
+            if(node.keys.get(node.slotArr.get(mid)) == key) return true;
+
+            if(node.keys.get(node.slotArr.get(mid)) < key) {
+                l = mid + 1;
+            }else{
+                r = mid - 1;
+            }
+        }
+        return false;
+    }
+
     public void insert(int key) {
         if(numLevels == 1 && oldRoot.keys.size() < MAX) {
             oldRoot.insert(key);
@@ -288,10 +326,14 @@ public class WbTree {
             tree.insert(keys[i]);
         }
 
-        tree.printTree();
-        System.out.println();
+        //tree.printTree();
+        //System.out.println();
         tree.rebuild();
         tree.printTree();
+
+        System.out.println(tree.search(47));
+        System.out.println(tree.search(4));
+        System.out.println(tree.search(155));
         
     }
 }
