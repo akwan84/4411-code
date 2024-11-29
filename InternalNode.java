@@ -24,14 +24,14 @@ public class InternalNode {
         //convert to a binary search later
         int i = keys.size() - 1;
 
-        while(i >= 0 && keys.get(keySlotArr.get(i)) > key) {
+        while(i >= 0 && keys.get(keySlotArr.get(i)) > key) { //no NVM reads because of slot array use
             i--;
         }
         i++;
 
         if(leafChildren.size() != 0) {
-            if(leafChildren.get(childrenSlotArr.get(i)).keys.size() == MAX) {
-                leafChildren.get(childrenSlotArr.get(i)).split(this);
+            if(leafChildren.get(childrenSlotArr.get(i)).keys.size() == MAX) { //1 read
+                leafChildren.get(childrenSlotArr.get(i)).split(this); //1 read
                 
                 i = keys.size() - 1;
 
@@ -40,12 +40,13 @@ public class InternalNode {
                 }
                 i++;
             }
-            leafChildren.get(childrenSlotArr.get(i)).insert(key);
+            leafChildren.get(childrenSlotArr.get(i)).insert(key); //1 read
+            
+            WbTree.numReads += 2;
         }else{
-            if(internalChildren.get(childrenSlotArr.get(i)).keys.size() == MAX) {
-                internalChildren.get(childrenSlotArr.get(i)).split(this);
+            if(internalChildren.get(childrenSlotArr.get(i)).keys.size() == MAX) { //1 read
+                internalChildren.get(childrenSlotArr.get(i)).split(this); //1 read
                 
-                //if(keys.get(keySlotArr.get(i)) < key) i++;
                 i = keys.size() - 1;
 
                 while(i >= 0 && keys.get(keySlotArr.get(i)) > key) {
@@ -53,20 +54,24 @@ public class InternalNode {
                 }
                 i++;
             }
-            internalChildren.get(childrenSlotArr.get(i)).insert(key);
+            internalChildren.get(childrenSlotArr.get(i)).insert(key); //1 read
+
+            WbTree.numReads += 2;
         }
+        WbTree.numReads += 1;
     }
 
     public void split(InternalNode parent) {
         //create the new node
-        InternalNode newNode = new InternalNode();
+        InternalNode newNode = new InternalNode(); //assuming this is being created and stored in NVM
 
         int promote = keys.get(keySlotArr.get(MAX/2));
 
         //put the larger half of the keys into the new node
         for(int i = MAX/2 + 1; i < MAX; i++) {
-            newNode.keys.add(keys.get(keySlotArr.get(i)));
-            newNode.keySlotArr.add(newNode.keys.size() - 1);
+            newNode.keys.add(keys.get(keySlotArr.get(i))); //1 write
+            newNode.keySlotArr.add(newNode.keys.size() - 1); //slot array that can be loaded into RAM
+            WbTree.numWrites++;
         }
 
         //restructure the smaller half of the keys
@@ -81,25 +86,13 @@ public class InternalNode {
         keys = newKeys;
         keySlotArr = newSlotArr;
 
-        /*
-        System.out.println("Old Node:");
-        for(int i = 0; i < MAX/2; i++) {
-            System.out.println(keys.get(keySlotArr.get(i)));
-        }
-
-        System.out.println("Promote: " + promote);
-        
-        System.out.println("New Node:");
-        for(int i = 0; i < MAX/2 - 1; i++) {
-            System.out.println(newNode.keys.get(newNode.keySlotArr.get(i)));
-        }*/
-
         //split the pointers
         if(leafChildren.size() != 0) { //this internal node had leaf children
             //put the larger half of the children into the new node
             for(int i = (int)Math.ceil((double)(MAX + 1)/2); i < MAX + 1; i++) {
-                newNode.leafChildren.add(leafChildren.get(childrenSlotArr.get(i)));
-                newNode.childrenSlotArr.add(newNode.leafChildren.size() - 1);
+                newNode.leafChildren.add(leafChildren.get(childrenSlotArr.get(i))); //1 write
+                newNode.childrenSlotArr.add(newNode.leafChildren.size() - 1); //slot array which can be loaded into RAM
+                WbTree.numWrites++;
             }
 
             //restructure the smaller half of the keys
@@ -116,8 +109,9 @@ public class InternalNode {
         } else { //internal node had internal children
             //put the larger half of the children into the new node
             for(int i = (int)Math.ceil((double)(MAX + 1)/2); i < MAX + 1; i++) {
-                newNode.internalChildren.add(internalChildren.get(childrenSlotArr.get(i)));
-                newNode.childrenSlotArr.add(newNode.internalChildren.size() - 1);
+                newNode.internalChildren.add(internalChildren.get(childrenSlotArr.get(i))); //1 write
+                newNode.childrenSlotArr.add(newNode.internalChildren.size() - 1); //slot array which can be loaded into RAM
+                WbTree.numWrites++;
             }
 
             //restructure the smaller half of the keys
@@ -133,69 +127,55 @@ public class InternalNode {
             childrenSlotArr = newChildrenSlotArr;
         }
 
-        //test leaf child split
-        /*
-        System.out.println("Old Node");
-        for(int i = 0; i < leafChildren.size(); i++) {
-            System.out.println(leafChildren.get(childrenSlotArr.get(i)).keys.get(0));
-        }
-        System.out.println("New Node");
-        for(int i = 0; i < newNode.leafChildren.size(); i++) {
-            System.out.println(newNode.leafChildren.get(newNode.childrenSlotArr.get(i)).keys.get(0));
-        }*/
-
-        //test internal child split
-        /*
-        System.out.println("Old Node");
-        for(int i = 0; i < internalChildren.size(); i++) {
-            System.out.println(internalChildren.get(childrenSlotArr.get(i)).keys.get(0));
-        }
-        System.out.println("New Node");
-        for(int i = 0; i < newNode.internalChildren.size(); i++) {
-            System.out.println(newNode.internalChildren.get(newNode.childrenSlotArr.get(i)).keys.get(0));
-        }*/
-
         //key promotion
         if(parent.keys.size() == 0) { //parent is a brand new internal node
-            parent.keys.add(promote);
-            parent.keySlotArr.add(0);
+            parent.keys.add(promote); //1 write
+            parent.keySlotArr.add(0); //slot array loaded into RAM
 
-            parent.internalChildren.add(this);
-            parent.internalChildren.add(newNode);
+            parent.internalChildren.add(this); //1 write
+            parent.internalChildren.add(newNode); //1 write
 
-            parent.childrenSlotArr.add(0);
+            parent.childrenSlotArr.add(0); //slot array loaded into RAM
             parent.childrenSlotArr.add(1);
+
+            WbTree.numWrites += 3;
         } else { //parent already has this node, need to find the right insertion point for newNode
             //add the promoted key
-            parent.keys.add(promote);
+            parent.keys.add(promote); //1 write
+            WbTree.numWrites++;
             int slotArrIndex = parent.keys.size() - 1;
 
             int l = 0, r = parent.keySlotArr.size();
             while (l < r) {
                 int mid = (l + r) / 2;
-                if (parent.keys.get(parent.keySlotArr.get(mid)) < promote) {
+                if (parent.keys.get(parent.keySlotArr.get(mid)) < promote) { //1 read
                     l = mid + 1;
                 } else {
                     r = mid; // Potential insertion point
                 }
+                WbTree.numReads++;
             }
 
-            parent.keySlotArr.add(l, slotArrIndex);
+            parent.keySlotArr.add(l, slotArrIndex); //1 write
+            WbTree.numWrites++;
 
             //find the right spot for newNode in the parent
-            parent.internalChildren.add(newNode);
+            parent.internalChildren.add(newNode); //1 write
+            WbTree.numWrites++;
+
             int childrenSlotArrIndex = parent.internalChildren.size() - 1;
 
             l = 0; 
             r = parent.childrenSlotArr.size();
             while (l < r) {
                 int mid = (l + r) / 2;
-                InternalNode searchNode = parent.internalChildren.get(parent.childrenSlotArr.get(mid));
+                InternalNode searchNode = parent.internalChildren.get(parent.childrenSlotArr.get(mid)); //1 read
                 if (searchNode.keys.get(searchNode.keySlotArr.get(searchNode.keySlotArr.size() - 1)) < promote) {
                     l = mid + 1;
                 } else {
                     r = mid; // Potential insertion point
                 }
+                WbTree.numReads++;
             }
 
             parent.childrenSlotArr.add(l, childrenSlotArrIndex);

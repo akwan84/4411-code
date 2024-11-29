@@ -1,6 +1,10 @@
 import java.util.*;
 
 public class WbTree {
+
+    public static int numReads = 0;
+    public static int numWrites = 0;
+
     LeafNode oldRoot;
     InternalNode root;
     int numLevels;
@@ -23,14 +27,17 @@ public class WbTree {
             LeafNode target = new LeafNode();
             for(int i = 0; i < numLevels - 1; i++) {
                 int index = cur.keys.size() - 1;
-                while(index >= 0 && key < cur.keys.get(cur.keySlotArr.get(index))) {
+                while(index >= 0 && key < cur.keys.get(cur.keySlotArr.get(index))) { //1 read
                     index--;
+                    WbTree.numReads++;
                 }
+
                 if(cur.leafChildren.size() != 0) {
-                    target = cur.leafChildren.get(cur.childrenSlotArr.get(index + 1));
+                    target = cur.leafChildren.get(cur.childrenSlotArr.get(index + 1)); //1 read
                 }else{
-                    cur = cur.internalChildren.get(cur.childrenSlotArr.get(index + 1));
+                    cur = cur.internalChildren.get(cur.childrenSlotArr.get(index + 1)); //1 read
                 }
+                WbTree.numReads++;
             }
             return searchLeaf(key, target);
         }
@@ -42,13 +49,14 @@ public class WbTree {
 
         while(l <= r) {
             int mid = (l + r) / 2;
-            if(node.keys.get(node.slotArr.get(mid)) == key) return true;
+            if(node.keys.get(node.slotArr.get(mid)) == key) return true; 
 
-            if(node.keys.get(node.slotArr.get(mid)) < key) {
+            if(node.keys.get(node.slotArr.get(mid)) < key) { //1 read
                 l = mid + 1;
             }else{
                 r = mid - 1;
             }
+            WbTree.numReads++;
         }
         return false;
     }
@@ -71,7 +79,7 @@ public class WbTree {
         lastState = serialize();
     }
 
-    public String serialize() {
+    private String serialize() {
         StringBuilder str = new StringBuilder();
         if(numLevels == 1) {
             for(int i = 0; i < oldRoot.keys.size(); i++) {
@@ -116,6 +124,7 @@ public class WbTree {
     public void rebuild() {
         List<Integer> keys = new ArrayList<>();
         
+        /* Parse the last state of the tree to get the keys to rebuild the tree with */
         StringBuilder curNum = new StringBuilder();
         for(char c : lastState.toCharArray()) {
             if(c != ',') {
@@ -128,59 +137,58 @@ public class WbTree {
 
         keys.add(Integer.parseInt(curNum.toString()));
 
-        /*for(int i = 0; i < keys.size(); i++) {
-            System.out.print(keys.get(i) + " ");
-        }
-        System.out.println();*/
 
+
+        /* Rebuild Leaf Nodes */
         List<LeafNode> leaves = new ArrayList<>();
-        LeafNode cur = new LeafNode();
-        //fill every leaf node to 50% capacity
+        LeafNode cur = new LeafNode(); //assume this is created in NVM
+
         for(int key : keys) {
-            if(cur.keys.size() >= MAX/2) {
+            if(cur.keys.size() >= MAX/2) { //fill every leaf node to 50% capacity
                 leaves.add(cur);
                 cur = new LeafNode();
             }
 
-            cur.keys.add(key);
+            cur.keys.add(key); //1 write
             cur.slotArr.add(cur.keys.size() - 1);
+            WbTree.numWrites++;
         }
         leaves.add(cur);
 
-        /*for(LeafNode node : leaves) {
-            for(int x : node.slotArr) {
-                System.out.print(node.keys.get(x) + " ");
-            }
-            System.out.print("     ");
-        }
-        System.out.println();*/
-
+        //Small enough that the tree only consists of 1 leaf node
         if(leaves.size() == 1) {
             oldRoot = leaves.get(0);
             numLevels = 1;
             return;
         }
 
-        //build internal nodes from the leaves
+
+
+        /* Build first level of internal nodes from leaf nodes */
         List<InternalNode> newInternals = new ArrayList<>();
         InternalNode curInternal = new InternalNode();
         for(LeafNode leaf : leaves) {
             if(curInternal.leafChildren.size() == 0) {
-                curInternal.leafChildren.add(leaf);
+                curInternal.leafChildren.add(leaf); // 1 write
                 curInternal.childrenSlotArr.add(0);
+                WbTree.numWrites++;
             }else{
                 if(curInternal.keys.size() >= MAX/2) {
                     newInternals.add(curInternal);
                     curInternal = new InternalNode();
                     
-                    curInternal.leafChildren.add(leaf);
+                    curInternal.leafChildren.add(leaf); //1 write
                     curInternal.childrenSlotArr.add(0);
+                    
+                    WbTree.numWrites++;
                 } else {
-                    curInternal.leafChildren.add(leaf);
+                    curInternal.leafChildren.add(leaf); //1 write
                     curInternal.childrenSlotArr.add(curInternal.leafChildren.size() - 1);
 
-                    curInternal.keys.add(leaf.keys.get(0));
+                    curInternal.keys.add(leaf.keys.get(0)); //1 write
                     curInternal.keySlotArr.add(curInternal.keys.size() - 1);
+
+                    WbTree.numWrites++;
                 }
             }
         }
@@ -191,15 +199,20 @@ public class WbTree {
 
             InternalNode last = newInternals.get(newInternals.size() - 1);
             
-            last.leafChildren.add(n);
+            last.leafChildren.add(n); //1 write
             last.childrenSlotArr.add(last.leafChildren.size() - 1);
 
-            last.keys.add(n.keys.get(0));
+            last.keys.add(n.keys.get(0)); //1 write
             last.keySlotArr.add(last.keys.size() - 1);
+
+            WbTree.numWrites++;
         }else{
             newInternals.add(curInternal);
         }
 
+        
+        
+        /* Build the rest of the internal nodes until only 1 remains */
         int level = 2;
         while(newInternals.size() > 1) {
             List<InternalNode> nextLevel = new ArrayList<>();
@@ -207,46 +220,56 @@ public class WbTree {
 
             for(int i = 0; i < newInternals.size(); i++) {
                 if(curInternal.internalChildren.size() == 0) {
-                    curInternal.internalChildren.add(newInternals.get(i));
+                    curInternal.internalChildren.add(newInternals.get(i)); //1 write
                     curInternal.childrenSlotArr.add(0);
+
+                    WbTree.numWrites++;
                 } else {
                     if(curInternal.keys.size() >= MAX/2) {
                         nextLevel.add(curInternal);
                         curInternal = new InternalNode();
 
-                        curInternal.internalChildren.add(newInternals.get(i));
+                        curInternal.internalChildren.add(newInternals.get(i)); //1 write
                         curInternal.childrenSlotArr.add(0);
+
+                        WbTree.numWrites++;
                     } else {
-                        InternalNode last = curInternal.internalChildren.get(curInternal.internalChildren.size() - 1);
-                        int lastKey = last.keys.get(last.keys.size() - 1);
-                        int firstKey = newInternals.get(i).keys.get(0);
+                        InternalNode last = curInternal.internalChildren.get(curInternal.internalChildren.size() - 1); //1 read
+                        int lastKey = last.keys.get(last.keys.size() - 1); //1 read
+                        int firstKey = newInternals.get(i).keys.get(0); //1 read
 
                         int mid = (int)Math.ceil(((double)(firstKey + lastKey)) / 2.0);
 
-                        curInternal.internalChildren.add(newInternals.get(i));
+                        curInternal.internalChildren.add(newInternals.get(i)); //1 write
                         curInternal.childrenSlotArr.add(curInternal.internalChildren.size() - 1);
 
-                        curInternal.keys.add(mid);
+                        curInternal.keys.add(mid); //1 write
                         curInternal.keySlotArr.add(curInternal.keys.size() - 1);
+
+                        WbTree.numReads += 3;
+                        WbTree.numWrites += 2;
                     }
                 }
             }
 
             if(curInternal.internalChildren.size() == 1) {
-                InternalNode lastNextLevel = nextLevel.get(nextLevel.size() - 1); //parent to add to
-                InternalNode n = curInternal.internalChildren.get(0); //child to add
-                InternalNode adjChild = lastNextLevel.internalChildren.get(lastNextLevel.internalChildren.size() - 1);
+                InternalNode lastNextLevel = nextLevel.get(nextLevel.size() - 1); //1 read
+                InternalNode n = curInternal.internalChildren.get(0); //1 read
+                InternalNode adjChild = lastNextLevel.internalChildren.get(lastNextLevel.internalChildren.size() - 1); //1 read
 
-                int lastKey = adjChild.keys.get(adjChild.keys.size() - 1);
-                int firstKey = n.keys.get(0);
+                int lastKey = adjChild.keys.get(adjChild.keys.size() - 1); //1 read
+                int firstKey = n.keys.get(0); //1 read
 
                 int mid = (int)Math.ceil(((double)(firstKey + lastKey)) / 2.0);
 
-                lastNextLevel.internalChildren.add(n);
+                lastNextLevel.internalChildren.add(n); //1 write
                 lastNextLevel.childrenSlotArr.add(lastNextLevel.internalChildren.size() - 1);
 
-                lastNextLevel.keys.add(mid);
+                lastNextLevel.keys.add(mid); //1 write
                 lastNextLevel.keySlotArr.add(lastNextLevel.keys.size() - 1);
+
+                WbTree.numReads += 5;
+                WbTree.numWrites += 2;
             }else{
                 nextLevel.add(curInternal);
             }
@@ -325,15 +348,19 @@ public class WbTree {
         for(int i = 0; i < numKeys; i++) {
             tree.insert(keys[i]);
         }
+        System.out.println(WbTree.numReads);
+        System.out.println(WbTree.numWrites);
 
         //tree.printTree();
         //System.out.println();
         tree.rebuild();
-        tree.printTree();
+        //System.out.println(WbTree.numReads);
+        //System.out.println(WbTree.numWrites);
+        //tree.printTree();
 
-        System.out.println(tree.search(47));
-        System.out.println(tree.search(4));
-        System.out.println(tree.search(155));
+        //System.out.println(tree.search(47));
+        //System.out.println(tree.search(4));
+        //System.out.println(tree.search(155));
         
     }
 }
