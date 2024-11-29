@@ -4,6 +4,7 @@ public class WbTree {
     LeafNode oldRoot;
     InternalNode root;
     int numLevels;
+    String lastState;
 
     public static final int MAX = 4;
 
@@ -11,6 +12,7 @@ public class WbTree {
         oldRoot = new LeafNode();
         root = new InternalNode();
         numLevels = 1;
+        lastState = "";
     }
 
     public void insert(int key) {
@@ -27,6 +29,49 @@ public class WbTree {
                 numLevels++;
             }
             root.insert(key);
+        }
+        lastState = serialize();
+    }
+
+    public String serialize() {
+        StringBuilder str = new StringBuilder();
+        if(numLevels == 1) {
+            for(int i = 0; i < oldRoot.keys.size(); i++) {
+                str.append(oldRoot.keys.get(oldRoot.slotArr.get(i)));
+                str.append(",");
+            }
+            return str.toString().substring(0, str.length() - 1);
+        }else{
+            Queue<InternalNode> queue = new LinkedList<>();
+            Queue<LeafNode> queue2 = new LinkedList<>();
+
+            queue.add(root);
+
+            while(!queue.isEmpty()) {
+                for(int j = queue.size(); j > 0; j--) {
+                    InternalNode cur = queue.poll();
+
+                    if(cur.leafChildren.size() == 0) {
+                        for(int i = 0; i < cur.childrenSlotArr.size(); i++) {
+                            queue.add(cur.internalChildren.get(cur.childrenSlotArr.get(i)));
+                        }
+                    }else{
+                        for(int i = 0; i < cur.childrenSlotArr.size(); i++) {
+                            queue2.add(cur.leafChildren.get(cur.childrenSlotArr.get(i)));
+                        }
+                    }
+                }
+            }
+
+            while(!queue2.isEmpty()) {
+                LeafNode cur = queue2.poll();
+
+                for(int i = 0; i < cur.keys.size(); i++) {
+                    str.append(cur.keys.get(cur.slotArr.get(i)));
+                    str.append(",");
+                }
+            }
+            return str.toString().substring(0, str.length() - 1);
         }
     }
 
@@ -82,5 +127,7 @@ public class WbTree {
         tree.insert(20);
 
         tree.printTree();
+
+        
     }
 }
