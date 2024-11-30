@@ -3,10 +3,12 @@
 #include <algorithm>
 #include <thread>
 #include <chrono>
+#include <random>
+#include <ctime>
 
 const int MAX = 4; // maximum keys per node 
-const int READ_TIME = 10;
-const int WRITE_TIME = 50;
+const int READ_TIME = 0;
+const int WRITE_TIME = 0;
 int numReads = 0;
 int numWrites = 0;
 
@@ -178,7 +180,11 @@ void BPTree::printTree(BPTreeNode* node, int level) {
 int main() {
     BPTree tree;
     
-    int values[] = {10, 20, 5, 6, 12, 30, 7, 17};
+    std::vector<int> values;
+    // Fill vector with numbers 1 to 100
+    for (int i = 1; i <= 1000; ++i) {
+        values.push_back(i);
+    }
     
     auto start = std::chrono::high_resolution_clock::now();
     for (int val : values) {
@@ -192,15 +198,15 @@ int main() {
     std::cout << "Number of Writes: " << numWrites << "\n\n";
 
     std::cout << "B+ Tree Structure:\n";
-    tree.printTree(tree.getRoot());
+    //tree.printTree(tree.getRoot());
 
-    int keyToSearch = 6;
+    /*int keyToSearch = 6;
     BPTreeNode* result = tree.search(keyToSearch);
     if (result) {
         std::cout << "\nKey " << keyToSearch << " found in the tree.\n";
     } else {
         std::cout << "\nKey " << keyToSearch << " not found in the tree.\n";
-    }
+    }*/
 
     return 0;
 }

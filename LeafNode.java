@@ -103,9 +103,72 @@ public class LeafNode {
         }
     }
 
+    public void split(SortedInternalNode parent) {
+        LeafNode newNode = new LeafNode();
+
+        int promote = keys.get(slotArr.get(MAX/2));
+
+        for(int i = MAX/2; i < MAX; i++) {
+            newNode.keys.add(keys.get(slotArr.get(i)));
+            newNode.slotArr.add(newNode.keys.size() - 1);
+        }
+
+        List<Integer> newKeys = new ArrayList<>();
+        List<Integer> newSlotArr = new ArrayList<>();
+
+        for(int i = 0; i < MAX/2; i++) {
+            newKeys.add(keys.get(slotArr.get(i))); //1 write
+            newSlotArr.add(newKeys.size() - 1);
+            WbTree.numWrites++;
+        }
+
+        keys = newKeys;
+        slotArr = newSlotArr;
+
+
+        /* add the promoted key to the parent */
+        int l = 0, r = parent.keys.size();
+        while (l < r) {
+            int mid = (l + r) / 2;
+            if (parent.keys.get(mid) < promote) {
+                l = mid + 1;
+            } else {
+                r = mid; // Potential insertion point
+            }
+        }
+
+        parent.keys.add(l, promote);
+
+        /* add the new node to the parent */
+        if(parent.leafChildren.size() == 0) {
+            parent.leafChildren.add(this); 
+            parent.leafChildren.add(newNode); 
+        } else {
+            //parent.leafChildren.add(newNode);
+            //int childrenSlotArrIndex = parent.leafChildren.size() - 1;
+
+            l = 0; 
+            r = parent.leafChildren.size();
+            while (l < r) {
+                int mid = (l + r) / 2;
+                LeafNode searchNode = parent.leafChildren.get(mid); //1 read
+                if (searchNode.keys.get(searchNode.slotArr.get(searchNode.slotArr.size() - 1)) < promote) {
+                    l = mid + 1;
+                } else {
+                    r = mid; // Potential insertion point
+                }
+                WbTree.numReads++;
+            }
+
+            parent.leafChildren.add(l, newNode); //1 write
+            WbTree.numWrites++;
+        }
+    }
+
+
     public static void main(String[] args) 
     {
-        LeafNode leaf = new LeafNode();
+        /*LeafNode leaf = new LeafNode();
         InternalNode parent = new InternalNode();
 
         leaf.insert(1);
@@ -131,6 +194,37 @@ public class LeafNode {
             for(int y : parent.leafChildren.get(x).slotArr) {
                 System.out.println(parent.leafChildren.get(x).keys.get(y));
             }
+        }*/
+
+        SortedInternalNode parent = new SortedInternalNode();
+        LeafNode leaf = new LeafNode();
+
+        leaf.insert(1);
+        leaf.insert(4);
+        leaf.insert(15);
+        leaf.insert(8);
+
+        leaf.split(parent);
+
+        leaf.insert(5);
+        leaf.insert(6);
+
+        leaf.split(parent);
+
+        /*for(int x : leaf.slotArr) {
+            System.out.println(leaf.keys.get(x));
+        }*/
+
+        for(LeafNode l : parent.leafChildren) {
+            for(int x : l.slotArr) {
+                System.out.print(l.keys.get(x) + " ");
+            }
+            System.out.println();
         }
+
+        for(int key : parent.keys) {
+            System.out.print(key + " ");
+        }
+        System.out.println();
     }
 }
