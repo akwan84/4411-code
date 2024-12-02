@@ -2,7 +2,7 @@ import java.util.*;
 
 public class SortedInternalNode {
 
-    public static final int MAX = 4;
+    public static final int MAX = 10;
 
     List<Integer> keys;
 

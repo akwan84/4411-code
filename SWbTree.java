@@ -9,7 +9,7 @@ class SWbTree {
     int numLevels;
     String lastState;
 
-    public static final int MAX = 4;
+    public static final int MAX = 10;
 
     public SWbTree() {
         oldRoot = new LeafNode();

@@ -4,7 +4,7 @@ public class LeafNode {
     List<Integer> keys;
     List<Integer> slotArr;
 
-    public static final int MAX = 4;
+    public static final int MAX = 10;
 
     public LeafNode() {
         this.keys = new ArrayList<>();

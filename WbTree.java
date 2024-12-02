@@ -10,7 +10,7 @@ public class WbTree {
     int numLevels;
     String lastState;
 
-    public static final int MAX = 4;
+    public static final int MAX = 10;
 
     public WbTree() {
         oldRoot = new LeafNode();

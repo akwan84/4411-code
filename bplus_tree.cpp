@@ -6,7 +6,7 @@
 #include <random>
 #include <ctime>
 
-const int MAX = 4; // maximum keys per node 
+const int MAX = 10; // maximum keys per node 
 const int READ_TIME = 0;
 const int WRITE_TIME = 0;
 int numReads = 0;
