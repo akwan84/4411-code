@@ -16,38 +16,60 @@ public class SortedInternalNode {
     }
 
     public void insert(int key) {
-        //convert to a binary search later
         int i = keys.size() - 1;
 
-        while(i >= 0 && keys.get(i) > key) { //no NVM reads because of slot array use
+        int reads = 0;
+        while(i >= 0 && keys.get(i) > key) { //1 read per iteration
             i--;
+            reads++;
         }
         i++;
 
+        //simulating number of reads of a binary search (log_2(reads))
+        if(reads > 0) {
+            SWbTree.numReads += (int)Math.ceil((Math.log((double)reads) / Math.log(2.0))) + 1;
+        }
+
         if(leafChildren.size() != 0) {
-            if(leafChildren.get(i).keys.size() == MAX) { 
-                leafChildren.get(i).split(this);
+            if(leafChildren.get(i).keys.size() == MAX) { //1 read
+                leafChildren.get(i).split(this); //1 read
                 
                 i = keys.size() - 1;
 
-                while(i >= 0 && keys.get(i) > key) {
+                reads = 0;
+                while(i >= 0 && keys.get(i) > key) { //1 read per iteration
                     i--;
                 }
+
+                //simulating a binary search which could have been done above and the 2 reads above
+                if(reads > 0) {
+                    SWbTree.numReads += (int)Math.ceil((Math.log((double)reads) / Math.log(2.0))) + 3;
+                }
+
                 i++;
             }
-            leafChildren.get(i).insert(key); //1 read
+            leafChildren.get(i).insert(key);
         }else{
             if(internalChildren.get(i).keys.size() == MAX) { //1 read
                 internalChildren.get(i).split(this); //1 read
                 
                 i = keys.size() - 1;
 
-                while(i >= 0 && keys.get(i) > key) {
+                reads = 0;
+                while(i >= 0 && keys.get(i) > key) { //1 read per iteration
                     i--;
+                    reads++;
+                }
+
+                //simulating a binary search which could have been done above and the 2 reads above
+                if(reads > 0) {
+                    SWbTree.numReads += (int)Math.ceil((Math.log((double)reads) / Math.log(2.0))) + 3;
+                }else{
+                    SWbTree.numReads++;
                 }
                 i++;
             }
-            internalChildren.get(i).insert(key); //1 read
+            internalChildren.get(i).insert(key);
         }
     }
 
@@ -58,8 +80,9 @@ public class SortedInternalNode {
         int promote = keys.get(MAX/2);
 
         //put the larger half of the keys into the new node
-        for(int i = MAX/2 + 1; i < MAX; i++) {
+        for(int i = MAX/2 + 1; i < MAX; i++) { //1 write per iteration
             newNode.keys.add(keys.get(i));
+            SWbTree.numWrites++;
         }
 
         //restructure the smaller half of the keys
@@ -76,6 +99,7 @@ public class SortedInternalNode {
             //put the larger half of the children into the new node
             for(int i = (int)Math.ceil((double)(MAX + 1)/2); i < MAX + 1; i++) {
                 newNode.leafChildren.add(leafChildren.get(i)); //1 write
+                SWbTree.numWrites++;
             }
 
             //restructure the smaller half of the keys
@@ -90,6 +114,7 @@ public class SortedInternalNode {
             //put the larger half of the children into the new node
             for(int i = (int)Math.ceil((double)(MAX + 1)/2); i < MAX + 1; i++) {
                 newNode.internalChildren.add(internalChildren.get(i)); //1 write
+                SWbTree.numWrites++;
             }
 
             //restructure the smaller half of the keys
@@ -108,7 +133,7 @@ public class SortedInternalNode {
 
             parent.internalChildren.add(this); //1 write
             parent.internalChildren.add(newNode); //1 write
-
+            SWbTree.numWrites += 2;
         } else { //parent already has this node, need to find the right insertion point for newNode
 
             int l = 0, r = parent.keys.size();
@@ -119,10 +144,11 @@ public class SortedInternalNode {
                 } else {
                     r = mid; // Potential insertion point
                 }
-                WbTree.numReads++;
+                SWbTree.numReads++;
             }
 
             parent.keys.add(l, promote); //1 write
+            SWbTree.numWrites++;
 
             
             //find the right spot for newNode in the parent
@@ -136,13 +162,11 @@ public class SortedInternalNode {
                 } else {
                     r = mid; // Potential insertion point
                 }
+                SWbTree.numReads++;
             }
 
-            parent.internalChildren.add(l, newNode);
+            parent.internalChildren.add(l, newNode); //1 write
+            SWbTree.numWrites++;
         }
-    }
-
-    public static void main(String[] args) {
-        
     }
 }

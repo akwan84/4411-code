@@ -23,11 +23,13 @@ public class LeafNode {
             } else {
                 r = mid; // Potential insertion point
             }
+            SWbTree.numReads++;
             WbTree.numReads++;
         }
 
         slotArr.add(l, index);// 1 write
         WbTree.numWrites++;
+        SWbTree.numReads++;
     }
 
     public void split(InternalNode parent) {
@@ -36,18 +38,16 @@ public class LeafNode {
         int promote = keys.get(slotArr.get(MAX/2));
 
         for(int i = MAX/2; i < MAX; i++) {
-            newNode.keys.add(keys.get(slotArr.get(i))); //1 write
+            newNode.keys.add(keys.get(slotArr.get(i)));
             newNode.slotArr.add(newNode.keys.size() - 1);
-            WbTree.numWrites++;
         }
 
         List<Integer> newKeys = new ArrayList<>();
         List<Integer> newSlotArr = new ArrayList<>();
 
         for(int i = 0; i < MAX/2; i++) {
-            newKeys.add(keys.get(slotArr.get(i))); //1 write
+            newKeys.add(keys.get(slotArr.get(i)));
             newSlotArr.add(newKeys.size() - 1);
-            WbTree.numWrites++;
         }
 
         keys = newKeys;
@@ -80,7 +80,7 @@ public class LeafNode {
             parent.childrenSlotArr.add(0);
             parent.childrenSlotArr.add(1);
 
-            WbTree.numWrites++;
+            WbTree.numWrites += 2;
         } else {
             parent.leafChildren.add(newNode);
             int childrenSlotArrIndex = parent.leafChildren.size() - 1;
@@ -117,9 +117,8 @@ public class LeafNode {
         List<Integer> newSlotArr = new ArrayList<>();
 
         for(int i = 0; i < MAX/2; i++) {
-            newKeys.add(keys.get(slotArr.get(i))); //1 write
+            newKeys.add(keys.get(slotArr.get(i)));
             newSlotArr.add(newKeys.size() - 1);
-            WbTree.numWrites++;
         }
 
         keys = newKeys;
@@ -157,11 +156,11 @@ public class LeafNode {
                 } else {
                     r = mid; // Potential insertion point
                 }
-                WbTree.numReads++;
+                SWbTree.numReads++;
             }
 
             parent.leafChildren.add(l, newNode); //1 write
-            WbTree.numWrites++;
+            SWbTree.numWrites++;
         }
     }
 

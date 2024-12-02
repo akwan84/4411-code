@@ -1,8 +1,4 @@
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.Random;
+import java.util.*;
 
 class SWbTree {
     public static int numReads = 0;
@@ -293,51 +289,64 @@ class SWbTree {
         numLevels = level;
     }
 
+    public static void resetStats() {
+        SWbTree.numReads = 0;
+        SWbTree.numWrites = 0;
+        WbTree.numReads = 0;
+        WbTree.numReads = 0;
+    }
+
     public static void main(String[] args) {
         SWbTree tree = new SWbTree();
 
-        /*tree.insert(1);
-        tree.insert(15);
-        tree.insert(6);
-        tree.insert(8);
-        tree.insert(9);
-        tree.insert(2);
-        tree.insert(3);
-        tree.insert(4);
-
-        tree.printTree();*/
-
-        int numKeys = 20;
-        int numShuffles = 100;
-        int start = 5;
-        int maxGap = 5;
-
-        Random r = new Random();
-
-        int[] keys = new int[numKeys];
-        keys[0] = start;
-        for(int i = 1; i < numKeys; i++) {
-            keys[i] = keys[i-1] + r.nextInt(maxGap) + 1;
+        resetStats();
+        for(int i = 0; i < 100; i++) {
+            tree.insert(i);
         }
 
-        for(int i = 0; i < numShuffles; i++) {
-            int x = r.nextInt(numKeys);
-            int y = r.nextInt(numKeys);
+        System.out.println("Number of Reads - 100 Keys: " + SWbTree.numReads);
+        System.out.println("Number of Writes - 100 Keys: " + SWbTree.numWrites);
 
-            int temp = keys[x];
-            keys[x] = keys[y];
-            keys[y] = temp;
-        }
 
-        for(int i = 0; i < numKeys; i++) {
-            tree.insert(keys[i]);
-        }
-
-        tree.printTree();
-
+        resetStats();
+        tree = new SWbTree();
         System.out.println();
 
-        tree.rebuild();
-        tree.printTree();
+
+        for(int i = 0; i < 1000; i++) {
+            tree.insert(i);
+        }
+
+        System.out.println("Number of Reads - 1000 Keys: " + SWbTree.numReads);
+        System.out.println("Number of Writes - 1000 Keys: " + SWbTree.numWrites);
+
+
+        resetStats();
+        tree = new SWbTree();
+        System.out.println();
+
+
+        for(int i = 0; i < 10000; i++) {
+            tree.insert(i);
+        }
+
+        System.out.println("Number of Reads - 10000 Keys: " + SWbTree.numReads);
+        System.out.println("Number of Writes - 10000 Keys: " + SWbTree.numWrites);
+
+
+        resetStats();
+        tree = new SWbTree();
+        System.out.println();
+
+
+        for(int i = 0; i < 50000; i++) {
+            tree.insert(i);
+        }
+
+        System.out.println("Number of Reads - 50000 Keys: " + SWbTree.numReads);
+        System.out.println("Number of Writes - 50000 Keys: " + SWbTree.numWrites);
+
+
+        resetStats();
     }
 }

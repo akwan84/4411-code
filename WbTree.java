@@ -27,8 +27,17 @@ public class WbTree {
             LeafNode target = new LeafNode();
             for(int i = 0; i < numLevels - 1; i++) {
                 int index = cur.keys.size() - 1;
+
+                int reads = 0;
                 while(index >= 0 && key < cur.keys.get(cur.keySlotArr.get(index))) { //1 read
                     index--;
+                    reads++;
+                }
+
+                //simulate the number of reads needed for a binary search (ceiling of log_2(reads))
+                if(reads > 0) {
+                    WbTree.numReads += (int)Math.ceil((Math.log((double)reads) / Math.log(2.0))) + 1;
+                }else{
                     WbTree.numReads++;
                 }
 
@@ -320,47 +329,65 @@ public class WbTree {
         System.out.println();
     }
 
+    public static void resetStats() {
+        SWbTree.numReads = 0;
+        SWbTree.numWrites = 0;
+        WbTree.numReads = 0;
+        WbTree.numReads = 0;
+    }
+
     public static void main(String[] args) {
         WbTree tree = new WbTree();
 
-        int numKeys = 1000;
-        int numShuffles = 2000;
-        int start = 5;
-        int maxGap = 5;
-
-        Random r = new Random();
-
-        int[] keys = new int[numKeys];
-        keys[0] = start;
-        for(int i = 1; i < numKeys; i++) {
-            keys[i] = keys[i-1] + r.nextInt(maxGap) + 1;
+        resetStats();
+        for(int i = 0; i < 100; i++) {
+            tree.insert(i);
         }
 
-        for(int i = 0; i < numShuffles; i++) {
-            int x = r.nextInt(numKeys);
-            int y = r.nextInt(numKeys);
+        System.out.println("Number of Reads - 100 Keys: " + WbTree.numReads);
+        System.out.println("Number of Writes - 100 Keys: " + WbTree.numWrites);
 
-            int temp = keys[x];
-            keys[x] = keys[y];
-            keys[y] = temp;
+
+        resetStats();
+        tree = new WbTree();
+        System.out.println();
+
+
+        for(int i = 0; i < 1000; i++) {
+            tree.insert(i);
         }
 
-        for(int i = 0; i < numKeys; i++) {
-            tree.insert(keys[i]);
+        System.out.println("Number of Reads - 1000 Keys: " + WbTree.numReads);
+        System.out.println("Number of Writes - 1000 Keys: " + WbTree.numWrites);
+
+
+        resetStats();
+        tree = new WbTree();
+        System.out.println();
+
+
+        for(int i = 0; i < 10000; i++) {
+            tree.insert(i);
         }
-        System.out.println(WbTree.numReads);
-        System.out.println(WbTree.numWrites);
 
-        //tree.printTree();
-        //System.out.println();
-        tree.rebuild();
-        //System.out.println(WbTree.numReads);
-        //System.out.println(WbTree.numWrites);
-        //tree.printTree();
+        System.out.println("Number of Reads - 10000 Keys: " + WbTree.numReads);
+        System.out.println("Number of Writes - 10000 Keys: " + WbTree.numWrites);
 
-        //System.out.println(tree.search(47));
-        //System.out.println(tree.search(4));
-        //System.out.println(tree.search(155));
+
+        resetStats();
+        tree = new WbTree();
+        System.out.println();
+
+
+        for(int i = 0; i < 50000; i++) {
+            tree.insert(i);
+        }
+
+        System.out.println("Number of Reads - 50000 Keys: " + WbTree.numReads);
+        System.out.println("Number of Writes - 50000 Keys: " + WbTree.numWrites);
+
+
+        resetStats();
         
     }
 }

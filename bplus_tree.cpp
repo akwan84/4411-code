@@ -62,8 +62,6 @@ void BPTreeNode::insertNonFull(int key) {
 
                 numReads += 2;
                 numWrites += 2;
-
-                std::this_thread::sleep_for(std::chrono::milliseconds((WRITE_TIME * 2) + (READ_TIME * 2)));
             }else{
                 break;
             }
@@ -73,7 +71,6 @@ void BPTreeNode::insertNonFull(int key) {
         while (i >= 0 && keys[i] > key) {
             i--;
             numReads++;
-            std::this_thread::sleep_for(std::chrono::milliseconds(READ_TIME));
         }
         i++;
         
@@ -83,7 +80,6 @@ void BPTreeNode::insertNonFull(int key) {
             if (keys[i] < key) i++;
 
             numReads++;
-            std::this_thread::sleep_for(std::chrono::milliseconds(READ_TIME));
         }
 
         //recursively call this method with the appropriate child node until a leaf is reached
@@ -102,7 +98,6 @@ void BPTreeNode::splitChild(int i, BPTreeNode* child) {
 
     numReads += mid;
     numWrites += mid;
-    std::this_thread::sleep_for(std::chrono::milliseconds((WRITE_TIME * mid) + (READ_TIME * mid)));
 
     //if the node is not a leaf, take the right half of the child pointers and add them to newChild
     if (!child->isLeaf) {
@@ -111,7 +106,6 @@ void BPTreeNode::splitChild(int i, BPTreeNode* child) {
 
         numReads += mid;
         numWrites += mid;
-        std::this_thread::sleep_for(std::chrono::milliseconds((WRITE_TIME * mid) + (READ_TIME * mid)));
     }
 
     //add the new key and child pointer
@@ -119,7 +113,6 @@ void BPTreeNode::splitChild(int i, BPTreeNode* child) {
     keys.insert(keys.begin() + i, newChild->keys[0]);
 
     numWrites += 2;
-    std::this_thread::sleep_for(std::chrono::milliseconds((WRITE_TIME * 2)));
 
     //set the next pointer if the node is a leaf
     if (child->isLeaf) {
@@ -127,7 +120,6 @@ void BPTreeNode::splitChild(int i, BPTreeNode* child) {
         child->next = newChild;
 
         numWrites += 2;
-        std::this_thread::sleep_for(std::chrono::milliseconds((WRITE_TIME * 2)));
     }
 }
 
@@ -149,7 +141,6 @@ BPTreeNode* BPTreeNode::search(int key) {
         i++;
 
         numReads++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(READ_TIME));
     }
 
     if (i < keys.size() && key == keys[i] && isLeaf) {
@@ -178,35 +169,59 @@ void BPTree::printTree(BPTreeNode* node, int level) {
 }
 
 int main() {
-    BPTree tree;
+    BPTree tree1;
     
-    std::vector<int> values;
-    // Fill vector with numbers 1 to 100
-    for (int i = 1; i <= 1000; ++i) {
-        values.push_back(i);
+    for (int i = 0; i < 100; ++i) {
+        tree1.insert(i);
     }
-    
-    auto start = std::chrono::high_resolution_clock::now();
-    for (int val : values) {
-        tree.insert(val);
-    }
-    auto end = std::chrono::high_resolution_clock::now();
 
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-    std::cout << "Execution Time: " << duration.count() << "\n";
+    std::cout << "Inserting 100 Keys" << "\n";
     std::cout << "Number of Reads: " << numReads << "\n";
     std::cout << "Number of Writes: " << numWrites << "\n\n";
 
-    std::cout << "B+ Tree Structure:\n";
-    //tree.printTree(tree.getRoot());
+    numReads = 0;
+    numWrites = 0;
 
-    /*int keyToSearch = 6;
-    BPTreeNode* result = tree.search(keyToSearch);
-    if (result) {
-        std::cout << "\nKey " << keyToSearch << " found in the tree.\n";
-    } else {
-        std::cout << "\nKey " << keyToSearch << " not found in the tree.\n";
-    }*/
+
+    BPTree tree2;
+    
+    for (int i = 0; i < 1000; ++i) {
+        tree2.insert(i);
+    }
+
+    std::cout << "Inserting 1000 Keys" << "\n";
+    std::cout << "Number of Reads: " << numReads << "\n";
+    std::cout << "Number of Writes: " << numWrites << "\n\n";
+
+    numReads = 0;
+    numWrites = 0;
+
+
+    BPTree tree3;
+    
+    for (int i = 0; i < 10000; ++i) {
+        tree3.insert(i);
+    }
+
+    std::cout << "Inserting 10000 Keys" << "\n";
+    std::cout << "Number of Reads: " << numReads << "\n";
+    std::cout << "Number of Writes: " << numWrites << "\n\n";
+
+    numReads = 0;
+    numWrites = 0;
+
+    BPTree tree4;
+    
+    for (int i = 0; i < 50000; ++i) {
+        tree4.insert(i);
+    }
+
+    std::cout << "Inserting 50000 Keys" << "\n";
+    std::cout << "Number of Reads: " << numReads << "\n";
+    std::cout << "Number of Writes: " << numWrites << "\n\n";
+
+    numReads = 0;
+    numWrites = 0;
 
     return 0;
 }
